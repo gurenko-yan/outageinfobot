@@ -1,0 +1,2 @@
+# outageinfobot
+@KrasnoyarskOutageInfoBot for Telegram
