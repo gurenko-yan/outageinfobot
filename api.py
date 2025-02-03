@@ -7,15 +7,19 @@ soup = BeautifulSoup(page.text, 'html.parser')
 
 
 class api:
-    def __init__(self, district, street):
-        self.data = []
-        root = self.get_tag(['div', 'table'])
-        tr = root.find('tr')
+    def __init__(self):
+        self.root = self.get_tag(['div', 'table'])
+
+    def find_data(self, district, street):
+        tr = self.root.find('tr')
 
         while tr['height'] != '0':
             if tr['height'] == '20':
                 td = tr.find_all('td')[1]
-                print(td.get_text())
+                text = self.correct(td.get_text())
+
+                if text == district:
+                    return True
             
             tr = tr.find_next('tr')
     
@@ -26,5 +30,12 @@ class api:
             current_tag = current_tag.find(tag)
 
         return current_tag
+    
+    def correct(self, text):
+        final_text = ''
 
-test = api('Октябрьский район', 'Сады 12')
+        for let in text:
+            if let.isalpha():
+                final_text += let
+
+        return final_text
