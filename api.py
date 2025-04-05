@@ -10,7 +10,7 @@ class api:
     def __init__(self):
         self.root = self.get_tag(['div', 'table'])
 
-    def find_data(self, district, street):
+    def find_data(self, district, street, number):
         tr = self.root.find('tr')
 
         while tr['height'] != '0':
@@ -19,9 +19,17 @@ class api:
                 text = self.correct(td.get_text())
 
                 if text == district:
-                    return True
-            
+                    tr = tr.find_next('tr')
+                    break
+
             tr = tr.find_next('tr')
+
+        while not(tr['height'] in ['20', '0']):
+            td = tr.find_all('td')[1]
+            self.get_street(td.get_text())
+
+            tr = tr.find_next('tr')
+            break
     
     def get_tag(self, hierarchy):
         current_tag = soup.body
@@ -39,3 +47,18 @@ class api:
                 final_text += let
 
         return final_text
+    
+    def get_street(self, text):
+        string = ''
+
+        for let in text:
+            if let.isalpha():
+                string += let
+            else:
+                if string in ['плановое', 'аварийное']:
+                    break
+                string = ''
+
+
+test = api()
+test.find_data('Октябрьскийрайон', 'Сады', '12')
