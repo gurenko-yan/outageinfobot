@@ -11,27 +11,28 @@ class api:
         self.root = self.get_tag(['div', 'table'])
 
     def find_data(self, district, street, number):
-        tr = self.root.find('tr')
+        tr = self.root.find('tr') # поиск первого тега <tr>
 
-        while tr['height'] != '0':
-            if tr['height'] == '20':
+        while tr['height'] != '0': # поиск <tr> height != 0
+            if tr['height'] == '20': # <tr> height = 20
                 td = tr.find_all('td')[1]
                 text = self.correct(td.get_text())
 
                 if text == district:
-                    tr = tr.find_next('tr')
+                    tr = tr.find_next('tr') # след. <tr> с которого начинается поиск улицы
                     break
 
             tr = tr.find_next('tr')
 
-        while not(tr['height'] in ['20', '0']):
-            td = tr.find_all('td')[1]
-            self.get_street(td.get_text())
+        while not(tr['height'] in ['20', '0']): # поиск <tr> height != 20 != 0
+            td = tr.find_all('td')[1] # <td> с улицами
+            k = self.check_street(td.get_text(), street, number)
+            if k:
+                return tr
 
             tr = tr.find_next('tr')
-            break
     
-    def get_tag(self, hierarchy):
+    def get_tag(self, hierarchy): # получение тега в иерархии
         current_tag = soup.body
 
         for tag in hierarchy:
@@ -39,26 +40,23 @@ class api:
 
         return current_tag
     
-    def correct(self, text):
-        final_text = ''
+    def correct(self, text): # преобразование текста в строку без не буквенных символов
+        result_text = ''
 
         for let in text:
             if let.isalpha():
-                final_text += let
+                result_text += let
 
-        return final_text
+        return result_text
     
-    def get_street(self, text):
-        string = ''
-
-        for let in text:
-            if let.isalpha():
-                string += let
-            else:
-                if string in ['плановое', 'аварийное']:
-                    break
-                string = ''
+    def check_street(self, text, street, number):
+        text = text.split(';')
+        for string in text:
+            if string in ['плановое', 'аварийное']:
+                return False
+            elif street in string:
+                return True
 
 
 test = api()
-test.find_data('Октябрьскийрайон', 'Сады', '12')
+print(test.find_data('Октябрьскийрайон', 'СНТ Землеустроитель', '432784368'))
