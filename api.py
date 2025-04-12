@@ -86,7 +86,7 @@ class api:
         is_excessive_space = False
 
         for let in data:
-            if not let in ['\n', '\r']:
+            if not let in ['\n', '\r', '\xa0']:
                 if let == ' ':
                     if not is_excessive_space:
                         s += let
@@ -94,11 +94,12 @@ class api:
                 else:
                     s += let
                     is_excessive_space = False
-            elif len(s) and flag:
+            elif not s in ['', ' '] and flag:
                 structured_data.append(s)
                 s = ''
         
-        structured_data.append(s)
+        if not s in ['', ' ']:
+            structured_data.append(s)
 
         return structured_data
 
@@ -112,5 +113,5 @@ class api:
 
 
 test = api()
-data = test.find_data('Октябрьский район', 'Цимлянская')
+data = test.find_data('Советский район', 'Авангардная')
 print(data)
