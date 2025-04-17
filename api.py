@@ -14,9 +14,8 @@ class api:
         try:
             tr['height']
         except:
-            cache = open('cache.txt', 'r', encoding='utf-8')
-            text = cache.read()
-            cache.close()
+            with open('cache.txt', 'r', encoding='utf-8') as cache: # кэширование html для обработки ошибок
+                text = cache.read()
             
             if not(text):
                 return -1
@@ -26,10 +25,8 @@ class api:
             
             tr = self.root.find('tr')
         else:
-            cache = open('cache.txt', 'w', encoding='utf-8')
-            cache.write(self.page.text)
-            cache.close()
-
+            with open('cache.txt', 'w', encoding='utf-8') as cache:
+                cache.write(self.page.text)
         
         while tr['height'] != '0': # поиск строки с названием района
             if tr['height'] == '20':
@@ -113,5 +110,5 @@ class api:
 
 
 test = api()
-data = test.find_data('Советский район', 'Авангардная')
+data = test.find_data('Октябрьский район', 'Серова')
 print(data)
