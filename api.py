@@ -77,7 +77,7 @@ class api:
             elif street in string:
                 return True
     
-    def correct_data(self, data, flag):
+    def simplify(self, data, flag): # флаг нужен для обработки случая, когда строка имеет много переносов
         structured_data = []
         s = ''
         is_excessive_space = False
@@ -94,6 +94,7 @@ class api:
             elif not s in ['', ' '] and flag:
                 structured_data.append(s)
                 s = ''
+                is_excessive_space = True # для избежания лишнего пробела в новом элементе
         
         if not s in ['', ' ']:
             structured_data.append(s)
@@ -102,13 +103,13 @@ class api:
 
     def structuring(self, data):
         structured_data = []
-        structured_data += self.correct_data(data[0], 1)
-        structured_data += self.correct_data(data[1], 0)
-        structured_data += self.correct_data(data[2], 1)
+        structured_data += self.simplify(data[0], 1)
+        structured_data += self.simplify(data[1], 0)
+        structured_data += self.simplify(data[2], 1)
 
         return structured_data
 
 
 test = api()
-data = test.find_data('Октябрьский район', 'Серова')
+data = test.find_data('Октябрьский район', '1-я Таймырская')
 print(data)
