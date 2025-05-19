@@ -49,6 +49,7 @@ class api:
                     data.append(i.get_text())
 
                 return self.structuring(data)
+                #return list(td[0].get_text())
 
             tr = tr.find_next('tr')
     
@@ -77,39 +78,72 @@ class api:
             elif street in string:
                 return True
     
-    def simplify(self, data, flag): # флаг нужен для обработки случая, когда строка имеет много переносов
-        structured_data = []
+    def simplify(self, data):
         s = ''
         is_excessive_space = False
+        divide_flag = True # если предыдущий символ '\r', а текущий '\n', то перенос строки не осуществляется (False)
 
         for let in data:
-            if not let in ['\n', '\r', '\xa0']:
-                if let == ' ':
-                    if not is_excessive_space:
-                        s += let
-                        is_excessive_space = True
-                else:
+            if not let in ['\r', '\n']:
+                if let == ' ' and not is_excessive_space:
+                    s += let
+                    is_excessive_space = True
+                elif not let in [' ', '\xa0']:
                     s += let
                     is_excessive_space = False
-            elif not s in ['', ' '] and flag:
-                structured_data.append(s)
-                s = ''
-                is_excessive_space = True # для избежания лишнего пробела в новом элементе
-        
-        if not s in ['', ' ']:
-            structured_data.append(s)
+            elif let == '\n':
+                s += ';'
+                is_excessive_space = True
 
-        return structured_data
+        return s
 
     def structuring(self, data):
-        structured_data = []
-        structured_data += self.simplify(data[0], 1)
-        structured_data += self.simplify(data[1], 0)
-        structured_data += self.simplify(data[2], 1)
+        structured_data = {}
+        col1 = self.simplify(data[0]).split(';')
+        col2 = self.simplify(data[1]).split(';')
+        col3 = self.simplify(data[2]).split(';')
+        
+        s = ''
+        for i in col1:
+            if 'ООО' in i or 'ПАО' in i or 'АО' in i:
+                structured_data.update({'resource': s})
+                s = ''
+            elif 'т.' in i:
+                structured_data.update({'company': s})
+                structured_data.update({'phone': i[3:]})
+            elif len(s):
+                s += ' '
+            s += i
+        
+        s = ''
+        for i in col2:
+            if 'аварийное' in i or 'плановое' in i:
+                structured_data.update({'streets': s})
+                s = ''
+            
+            if len(s):
+                s += ' '
+
+            s += i
+
+        structured_data.update({'info': s})
+
+        s = ''
+        flag = False
+        for i in col3:
+            s += i
+            if not flag:
+                end = i.rfind('-')
+                if end != -1:
+                    flag = True
+                    structured_data.update({'start': s})
+                    s = ''
+
+        structured_data.update({'finish': s})
 
         return structured_data
 
-
+# демонстрация
 test = api()
 data = test.find_data('Октябрьский район', '1-я Таймырская')
 print(data)
