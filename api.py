@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
+import streets_base
 
 class api:
     def __init__(self):
@@ -7,6 +8,7 @@ class api:
         self.page.encoding = 'windows-1251'
         self.soup = BeautifulSoup(self.page.text, 'html.parser')
         self.root = self.get_tag(['div', 'table'])
+        self.streets = streets_base.streets
     
     def find_data(self, district, street):
         tr = self.root.find('tr') # поиск первого тега <tr>
@@ -101,8 +103,11 @@ class api:
     def structuring(self, data):
         structured_data = {}
         col1 = self.simplify(data[0], 0).split('; ')
-        col2 = self.simplify(data[1], 1).split('; ')
+        col2 = self.simplify(data[1], 1).split(';')
         col3 = self.simplify(data[2], 0).split('; ')
+
+        if 'отмена' in col3:
+            return None
         
         s = ''
         for i in col1:
@@ -142,10 +147,13 @@ class api:
                         if divide_point == len(i) + 1:
                             divide_point = j
 
+                begin = 0
                 if i[divide_point - 1] == ' ':
-                    street.append(i[:(divide_point - 1)])
+                    if i[0] == ' ': begin += 1
+                    street.append(i[begin:(divide_point - 1)])
                 else:
-                    street.append(i[:divide_point])
+                    if i[0] == ' ': begin += 1
+                    street.append(i[begin:divide_point])
 
                 if i[divide_point:] != '':
                     if i[-1] == '|':
@@ -156,7 +164,9 @@ class api:
                     else:
                         street.append(i[divide_point:])
             elif i[-1] == '|':
-                street.append(i[:-1])
+                begin = 0
+                if i[0] == ' ': begin += 1
+                street.append(i[begin:-1])
                 streets.append(street)
                 street = []
                 new_street = True
@@ -170,9 +180,6 @@ class api:
         flag = False
         for i in col3:
             s += i
-            if 'отмена' in i:
-                structured_data.update({'start': 'отмена'})
-                break
             if not flag:
                 end = i.rfind('-')
                 if end != -1:
@@ -188,7 +195,7 @@ class api:
 
 # демонстрация
 test = api()
-data = test.find_data('Советский район', '60 лет образования СССР')
+data = test.find_data('Железнодорожный район', 'Калинина')
 print(data['resource'])
 print(data['company'])
 print(data['phone'])
