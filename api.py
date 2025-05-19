@@ -195,7 +195,7 @@ class api:
 
 # демонстрация
 test = api()
-data = test.find_data('Железнодорожный район', 'Калинина')
+data = test.find_data('Железнодорожный район', 'Красной Армии')
 print(data['resource'])
 print(data['company'])
 print(data['phone'])
