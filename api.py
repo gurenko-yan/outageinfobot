@@ -49,7 +49,6 @@ class api:
                     data.append(i.get_text())
 
                 return self.structuring(data)
-                #return list(td[0].get_text())
 
             tr = tr.find_next('tr')
     
@@ -78,30 +77,32 @@ class api:
             elif street in string:
                 return True
     
-    def simplify(self, data):
+    def simplify(self, data, flag):
         s = ''
         is_excessive_space = False
-        divide_flag = True # если предыдущий символ '\r', а текущий '\n', то перенос строки не осуществляется (False)
+        divide_trigger = ['\n', ',']
 
         for let in data:
-            if not let in ['\r', '\n']:
+            if not let in ['\r', '\n', ',']:
                 if let == ' ' and not is_excessive_space:
                     s += let
                     is_excessive_space = True
                 elif not let in [' ', '\xa0']:
+                    if let == ';':
+                        s += '|'
                     s += let
                     is_excessive_space = False
-            elif let == '\n':
-                s += ';'
+            elif let == divide_trigger[flag]:
+                s += '; '
                 is_excessive_space = True
 
         return s
 
     def structuring(self, data):
         structured_data = {}
-        col1 = self.simplify(data[0]).split(';')
-        col2 = self.simplify(data[1]).split(';')
-        col3 = self.simplify(data[2]).split(';')
+        col1 = self.simplify(data[0], 0).split('; ')
+        col2 = self.simplify(data[1], 1).split('; ')
+        col3 = self.simplify(data[2], 0).split('; ')
         
         s = ''
         for i in col1:
@@ -116,28 +117,70 @@ class api:
             s += i
         
         s = ''
+        flag = False
+        street = []
+        streets = []
+        new_street = True
         for i in col2:
             if 'аварийное' in i or 'плановое' in i:
-                structured_data.update({'streets': s})
-                s = ''
+                flag = True
             
-            if len(s):
-                s += ' '
+            if flag:
+                s += i
+            elif new_street:
+                new_street = False
+                char_counter = 0
+                divide_point = len(i) + 1
 
-            s += i
+                for j in range(len(i)):
+                    if not(i[j].isdigit() or i[j] in ['-', '/', '|']):
+                        if char_counter > 1:
+                            divide_point = len(i) + 1
+                        char_counter += 1
+                    else:
+                        char_counter = 0
+                        if divide_point == len(i) + 1:
+                            divide_point = j
 
+                if i[divide_point - 1] == ' ':
+                    street.append(i[:(divide_point - 1)])
+                else:
+                    street.append(i[:divide_point])
+
+                if i[divide_point:] != '':
+                    if i[-1] == '|':
+                        street.append(i[divide_point:-1])
+                        streets.append(street)
+                        street = []
+                        new_street = True
+                    else:
+                        street.append(i[divide_point:])
+            elif i[-1] == '|':
+                street.append(i[:-1])
+                streets.append(street)
+                street = []
+                new_street = True
+            else:
+                street.append(i)
+
+        structured_data.update({'streets': streets})
         structured_data.update({'info': s})
 
         s = ''
         flag = False
         for i in col3:
             s += i
+            if 'отмена' in i:
+                structured_data.update({'start': 'отмена'})
+                break
             if not flag:
                 end = i.rfind('-')
                 if end != -1:
                     flag = True
                     structured_data.update({'start': s})
                     s = ''
+            if len(s):
+                s += ' '
 
         structured_data.update({'finish': s})
 
@@ -145,5 +188,12 @@ class api:
 
 # демонстрация
 test = api()
-data = test.find_data('Октябрьский район', '1-я Таймырская')
-print(data)
+data = test.find_data('Советский район', '60 лет образования СССР')
+print(data['resource'])
+print(data['company'])
+print(data['phone'])
+for i in data['streets']:
+    print(i)
+print(data['info'])
+print(data['start'])
+print(data['finish'])
