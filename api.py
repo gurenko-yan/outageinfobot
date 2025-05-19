@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 import requests
-import streets_base
 
 class api:
     def __init__(self):
@@ -8,7 +7,6 @@ class api:
         self.page.encoding = 'windows-1251'
         self.soup = BeautifulSoup(self.page.text, 'html.parser')
         self.root = self.get_tag(['div', 'table'])
-        self.streets = streets_base.streets
     
     def find_data(self, district, street):
         tr = self.root.find('tr') # поиск первого тега <tr>
