@@ -7,6 +7,15 @@ class api:
         self.page.encoding = 'windows-1251'
         self.soup = BeautifulSoup(self.page.text, 'html.parser')
         self.root = self.get_tag(['div', 'table'])
+        self.structured_data = {
+            'resource': '',
+            'company': '',
+            'phone': '',
+            'streets': [],
+            'info': '',
+            'start': '',
+            'finish': ''
+        }
     
     def find_data(self, district, street):
         tr = self.root.find('tr') # поиск первого тега <tr>
@@ -51,6 +60,8 @@ class api:
                 return self.structuring(data)
 
             tr = tr.find_next('tr')
+        
+        return self.structured_data # возврат пустого словаря
     
     def get_tag(self, hierarchy): # получение тега в иерархии
         current_tag = self.soup.body
@@ -99,22 +110,18 @@ class api:
         return s
 
     def structuring(self, data):
-        structured_data = {}
         col1 = self.simplify(data[0], 0).split('; ')
         col2 = self.simplify(data[1], 1).split(';')
         col3 = self.simplify(data[2], 0).split('; ')
-
-        if 'отмена' in col3:
-            return None
         
         s = ''
         for i in col1:
             if 'ООО' in i or 'ПАО' in i or 'АО' in i:
-                structured_data.update({'resource': s})
+                self.structured_data.update({'resource': s})
                 s = ''
             elif 'т.' in i:
-                structured_data.update({'company': s})
-                structured_data.update({'phone': i[3:]})
+                self.structured_data.update({'company': s})
+                self.structured_data.update({'phone': i[3:]})
             elif len(s):
                 s += ' '
             s += i
@@ -133,25 +140,22 @@ class api:
             elif new_street:
                 new_street = False
                 char_counter = 0
-                divide_point = len(i) + 1
+                divide_point = len(i)
 
                 for j in range(len(i)):
                     if not(i[j].isdigit() or i[j] in ['-', '/', '|']):
                         if char_counter > 1:
-                            divide_point = len(i) + 1
+                            divide_point = len(i)
                         char_counter += 1
                     else:
                         char_counter = 0
-                        if divide_point == len(i) + 1:
+                        if divide_point == len(i):
                             divide_point = j
 
                 begin = 0
-                if i[divide_point - 1] == ' ':
-                    if i[0] == ' ': begin += 1
-                    street.append(i[begin:(divide_point - 1)])
-                else:
-                    if i[0] == ' ': begin += 1
-                    street.append(i[begin:divide_point])
+                if i[0] == ' ': begin += 1
+                if i[-1] == ' ': divide_point -= 1
+                street.append(i[begin:divide_point])
 
                 if i[divide_point:] != '':
                     if i[-1] == '|':
@@ -171,34 +175,31 @@ class api:
             else:
                 street.append(i)
 
-        structured_data.update({'streets': streets})
-        structured_data.update({'info': s})
+        self.structured_data.update({'streets': streets})
+        self.structured_data.update({'info': s})
 
         s = ''
         flag = False
         for i in col3:
             s += i
+            if 'отмена' in s:
+                self.structured_data.update({'start': 'отмена'})
+                s = 'отмена'
+                break
             if not flag:
                 end = i.rfind('-')
                 if end != -1:
                     flag = True
-                    structured_data.update({'start': s})
+                    self.structured_data.update({'start': s})
                     s = ''
             if len(s):
                 s += ' '
 
-        structured_data.update({'finish': s})
+        self.structured_data.update({'finish': s})
 
-        return structured_data
+        return self.structured_data
 
 # демонстрация
 test = api()
-data = test.find_data('Железнодорожный район', 'Красной Армии')
-print(data['resource'])
-print(data['company'])
-print(data['phone'])
-for i in data['streets']:
-    print(i)
-print(data['info'])
-print(data['start'])
-print(data['finish'])
+data = test.find_data('Железнодорожный район', 'Свободный')
+print(data)
